@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import AuthenticationServices
 
 enum AuthState {
     case loading
@@ -16,6 +17,7 @@ class UserSession: ObservableObject {
     @Published var errorMessage: String?
 
     private let api = APIService.shared
+    let auth0 = Auth0Service()
 
     func checkAuth() async {
         guard KeychainService.getToken() != nil else {
@@ -34,10 +36,25 @@ class UserSession: ObservableObject {
                 errorMessage = error.localizedDescription
                 authState = .unauthenticated
             default:
+                // Profile not found — needs onboarding
                 authState = .onboarding
             }
         } catch {
             authState = .unauthenticated
+        }
+    }
+
+    func loginWithAuth0(from anchor: ASPresentationAnchor) async {
+        errorMessage = nil
+        do {
+            _ = try await auth0.login(from: anchor)
+            await checkAuth()
+        } catch {
+            // User cancelled is not an error to display
+            if (error as NSError).code == ASWebAuthenticationSessionError.canceledLogin.rawValue {
+                return
+            }
+            errorMessage = error.localizedDescription
         }
     }
 
@@ -61,6 +78,7 @@ class UserSession: ObservableObject {
         authState = .unauthenticated
     }
 
+    // Demo helper: skip Auth0 and set a mock token
     func demoLogin() async {
         KeychainService.saveToken("demo-token")
         await checkAuth()

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SplashView: View {
     @EnvironmentObject var session: UserSession
+    @State private var isSigningIn = false
 
     var body: some View {
         VStack(spacing: 24) {
@@ -26,16 +27,34 @@ struct SplashView: View {
                 ProgressView()
                     .padding()
             } else {
-                // Demo login button (replaces Auth0 for MVP)
-                Button {
-                    Task { await session.demoLogin() }
-                } label: {
-                    Text("Sign In")
-                        .font(.headline)
+                VStack(spacing: 12) {
+                    // Auth0 Sign In
+                    Button {
+                        signInWithAuth0()
+                    } label: {
+                        HStack {
+                            if isSigningIn {
+                                ProgressView()
+                                    .tint(.white)
+                            }
+                            Text(isSigningIn ? "Signing In..." : "Sign In")
+                                .font(.headline)
+                        }
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(.purple, in: RoundedRectangle(cornerRadius: 14))
+                    }
+                    .disabled(isSigningIn)
+
+                    // Demo login fallback
+                    Button {
+                        Task { await session.demoLogin() }
+                    } label: {
+                        Text("Continue without Auth (Demo)")
+                            .font(.subheadline)
+                            .foregroundStyle(.purple)
+                    }
                 }
                 .padding(.horizontal, 40)
             }
@@ -54,5 +73,29 @@ struct SplashView: View {
         .task {
             await session.checkAuth()
         }
+    }
+
+    private func signInWithAuth0() {
+        isSigningIn = true
+        #if os(iOS)
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first else {
+            isSigningIn = false
+            return
+        }
+        Task {
+            await session.loginWithAuth0(from: window)
+            isSigningIn = false
+        }
+        #else
+        guard let window = NSApplication.shared.keyWindow else {
+            isSigningIn = false
+            return
+        }
+        Task {
+            await session.loginWithAuth0(from: window)
+            isSigningIn = false
+        }
+        #endif
     }
 }

@@ -23,7 +23,7 @@ enum APIError: Error, LocalizedError {
 class APIService: ObservableObject {
     static let shared = APIService()
 
-    @Published var baseURL: String = "https://your-ngrok-url.ngrok.io"
+    @Published var baseURL: String = "https://scoreless-mowing-feisty.ngrok-free.dev"
 
     private var decoder: JSONDecoder {
         let d = JSONDecoder()
