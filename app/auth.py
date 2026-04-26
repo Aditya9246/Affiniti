@@ -61,7 +61,8 @@ async def get_current_user(
         )
         auth0_id: str = payload["sub"]
     except JWTError as e:
-        print(f"[auth] JWTError: {e}")
+        unverified = jwt.get_unverified_claims(token) if token.count(".") == 2 else {}
+        print(f"[auth] JWTError: {e} | aud={unverified.get('aud')} iss={unverified.get('iss')}")
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
     result = await db.execute(select(User).where(User.auth0_id == auth0_id))
