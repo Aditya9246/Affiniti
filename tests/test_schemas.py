@@ -20,3 +20,21 @@ def test_models_import():
     assert Match.__tablename__ == "matches"
     assert Status.__tablename__ == "statuses"
     assert Bookmark.__tablename__ == "bookmarks"
+
+
+def test_user_profile_request_defaults():
+    from app.schemas import UserProfileRequest
+    req = UserProfileRequest(name="Alice")
+    assert req.interests == []
+    assert req.skills == []
+    assert req.bio is None
+
+def test_rsvp_request_fields():
+    from app.schemas import RSVPRequest
+    req = RSVPRequest(opted_in_fields=["name", "photo"])
+    assert "name" in req.opted_in_fields
+
+def test_status_request_valid():
+    from app.schemas import StatusRequest
+    req = StatusRequest(status="open_to_chat")
+    assert req.status == "open_to_chat"
