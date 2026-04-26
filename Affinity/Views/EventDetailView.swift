@@ -1,13 +1,13 @@
 import SwiftUI
 
 struct EventDetailView: View {
-    let event: Event
+    @State private var event: Event
     @State private var showPrivacySheet = false
     @State private var isRSVPed: Bool
     @State private var navigateToHub = false
 
     init(event: Event) {
-        self.event = event
+        _event = State(initialValue: event)
         _isRSVPed = State(initialValue: event.isRSVPed)
     }
 
@@ -93,7 +93,13 @@ struct EventDetailView: View {
 
                     Button {
                         if isRSVPed {
-                            navigateToHub = true
+                            Task {
+                                // Re-fetch event to get fresh attendees list
+                                if let fresh = try? await APIService.shared.getEvent(id: event.id) {
+                                    event = fresh
+                                }
+                                navigateToHub = true
+                            }
                         } else {
                             showPrivacySheet = true
                         }

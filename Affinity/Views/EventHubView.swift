@@ -1,8 +1,16 @@
 import SwiftUI
 
+enum HubTab: String, CaseIterable {
+    case feed = "Feed"
+    case matches = "Matches"
+    case toMeet = "To Meet"
+    case status = "My Status"
+}
+
 struct EventHubView: View {
     let event: Event
     @StateObject private var viewModel: EventHubViewModel
+    @State private var selectedTab: HubTab = .feed
 
     init(event: Event) {
         self.event = event
@@ -10,26 +18,26 @@ struct EventHubView: View {
     }
 
     var body: some View {
-        TabView {
-            DiscoveryFeedTab(viewModel: viewModel)
-                .tabItem {
-                    Label("Feed", systemImage: "rectangle.stack.fill")
+        VStack(spacing: 0) {
+            Picker("Section", selection: $selectedTab) {
+                ForEach(HubTab.allCases, id: \.self) { tab in
+                    Text(tab.rawValue).tag(tab)
                 }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
 
-            MatchesTab(viewModel: viewModel)
-                .tabItem {
-                    Label("Matches", systemImage: "sparkles")
-                }
-
-            ToMeetTab(viewModel: viewModel)
-                .tabItem {
-                    Label("To Meet", systemImage: "bookmark.fill")
-                }
-
-            MyStatusTab(viewModel: viewModel)
-                .tabItem {
-                    Label("My Status", systemImage: "circle.fill")
-                }
+            switch selectedTab {
+            case .feed:
+                DiscoveryFeedTab(viewModel: viewModel)
+            case .matches:
+                MatchesTab(viewModel: viewModel)
+            case .toMeet:
+                ToMeetTab(viewModel: viewModel)
+            case .status:
+                MyStatusTab(viewModel: viewModel)
+            }
         }
         .tint(.purple)
         .navigationTitle(event.name)

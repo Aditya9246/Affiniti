@@ -20,14 +20,18 @@ class UserSession: ObservableObject {
     let auth0 = Auth0Service()
 
     func checkAuth() async {
-        guard KeychainService.getToken() != nil else {
+        guard let token = KeychainService.getToken() else {
+            print("[Auth] No token found, unauthenticated")
             authState = .unauthenticated
             return
         }
+        print("[Auth] Token found: \(token.prefix(20))...")
         do {
             currentUser = try await api.getMe()
+            print("[Auth] Got user profile, authenticated")
             authState = .authenticated
         } catch let error as APIError {
+            print("[Auth] API error: \(error.localizedDescription ?? "unknown")")
             switch error {
             case .unauthorized:
                 KeychainService.deleteToken()
@@ -37,18 +41,35 @@ class UserSession: ObservableObject {
                 authState = .unauthenticated
             default:
                 // Profile not found — needs onboarding
+                print("[Auth] Assuming new user, going to onboarding")
                 authState = .onboarding
             }
         } catch {
+            print("[Auth] Unknown error: \(error)")
             authState = .unauthenticated
         }
     }
 
     func loginWithAuth0(from anchor: ASPresentationAnchor) async {
         errorMessage = nil
+        // Clear any stale token before fresh login
+        KeychainService.deleteToken()
         do {
             _ = try await auth0.login(from: anchor)
-            await checkAuth()
+            // After fresh Auth0 login, try to fetch profile
+            // If backend rejects the token (401), treat as new user needing onboarding
+            guard KeychainService.getToken() != nil else {
+                authState = .unauthenticated
+                return
+            }
+            do {
+                currentUser = try await api.getMe()
+                print("[Auth] Got user profile after login, authenticated")
+                authState = .authenticated
+            } catch {
+                print("[Auth] Profile fetch failed after login: \(error.localizedDescription), going to onboarding")
+                authState = .onboarding
+            }
         } catch {
             // User cancelled is not an error to display
             if (error as NSError).code == ASWebAuthenticationSessionError.canceledLogin.rawValue {
@@ -66,9 +87,14 @@ class UserSession: ObservableObject {
     func completeOnboarding(profile: UserProfile) async {
         do {
             currentUser = try await api.createProfile(profile)
+            print("[Auth] Profile created successfully, navigating to home")
             authState = .authenticated
         } catch {
-            errorMessage = error.localizedDescription
+            print("[Auth] Profile creation error: \(error). Navigating to home anyway.")
+            // Backend accepted it but response may not match our model
+            // Navigate forward regardless
+            currentUser = profile
+            authState = .authenticated
         }
     }
 

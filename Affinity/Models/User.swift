@@ -60,6 +60,42 @@ struct Attendee: Codable, Identifiable {
         case status
         case isBookmarked = "is_bookmarked"
     }
+
+    init(id: String, name: String, photoURL: String? = nil, bio: String? = nil, interests: [String] = [], skills: [String] = [], hobbies: String? = nil, projectsBuilt: String? = nil, lookingToLearn: String? = nil, githubURL: String? = nil, linkedinURL: String? = nil, sharedInterests: [String] = [], status: AttendeeStatus? = nil, isBookmarked: Bool = false) {
+        self.id = id
+        self.name = name
+        self.photoURL = photoURL
+        self.bio = bio
+        self.interests = interests
+        self.skills = skills
+        self.hobbies = hobbies
+        self.projectsBuilt = projectsBuilt
+        self.lookingToLearn = lookingToLearn
+        self.githubURL = githubURL
+        self.linkedinURL = linkedinURL
+        self.sharedInterests = sharedInterests
+        self.status = status
+        self.isBookmarked = isBookmarked
+    }
+
+    // Privacy-masked fields may come back as null — provide defaults
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        name = try c.decodeIfPresent(String.self, forKey: .name) ?? "Anonymous"
+        photoURL = try c.decodeIfPresent(String.self, forKey: .photoURL)
+        bio = try c.decodeIfPresent(String.self, forKey: .bio)
+        interests = try c.decodeIfPresent([String].self, forKey: .interests) ?? []
+        skills = try c.decodeIfPresent([String].self, forKey: .skills) ?? []
+        hobbies = try c.decodeIfPresent(String.self, forKey: .hobbies)
+        projectsBuilt = try c.decodeIfPresent(String.self, forKey: .projectsBuilt)
+        lookingToLearn = try c.decodeIfPresent(String.self, forKey: .lookingToLearn)
+        githubURL = try c.decodeIfPresent(String.self, forKey: .githubURL)
+        linkedinURL = try c.decodeIfPresent(String.self, forKey: .linkedinURL)
+        sharedInterests = try c.decodeIfPresent([String].self, forKey: .sharedInterests) ?? []
+        status = try c.decodeIfPresent(AttendeeStatus.self, forKey: .status)
+        isBookmarked = try c.decodeIfPresent(Bool.self, forKey: .isBookmarked) ?? false
+    }
 }
 
 enum AttendeeStatus: String, Codable, CaseIterable {

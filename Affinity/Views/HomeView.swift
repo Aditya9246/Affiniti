@@ -4,7 +4,6 @@ struct HomeView: View {
     @EnvironmentObject var session: UserSession
     @StateObject private var viewModel = EventListViewModel()
     @State private var showCreateEvent = false
-    @State private var selectedEvent: Event?
 
     var body: some View {
         NavigationStack {
@@ -20,7 +19,7 @@ struct HomeView: View {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 LazyHStack(spacing: 16) {
                                     ForEach(viewModel.yourEvents) { event in
-                                        NavigationLink(value: event) {
+                                        NavigationLink(destination: EventDetailView(event: event)) {
                                             YourEventCard(event: event)
                                         }
                                         .buttonStyle(.plain)
@@ -48,7 +47,7 @@ struct HomeView: View {
 
                         LazyVStack(spacing: 12) {
                             ForEach(viewModel.openEvents) { event in
-                                NavigationLink(value: event) {
+                                NavigationLink(destination: EventDetailView(event: event)) {
                                     EventListCard(event: event)
                                 }
                                 .buttonStyle(.plain)
@@ -65,7 +64,7 @@ struct HomeView: View {
             .navigationTitle("Affiniti")
             .toolbar {
                 ToolbarItem(placement: .navigation) {
-                    NavigationLink(value: "settings") {
+                    NavigationLink(destination: SettingsView()) {
                         Image(systemName: "person.circle.fill")
                             .font(.title3)
                             .foregroundStyle(.purple)
@@ -90,16 +89,11 @@ struct HomeView: View {
             .sheet(isPresented: $showCreateEvent) {
                 CreateEventSheet(viewModel: viewModel)
             }
-            .navigationDestination(for: Event.self) { event in
-                EventDetailView(event: event)
-            }
-            .navigationDestination(for: String.self) { value in
-                if value == "settings" {
-                    SettingsView()
-                }
-            }
             .task {
                 await viewModel.loadEvents()
+            }
+            .onAppear {
+                Task { await viewModel.loadEvents() }
             }
             .overlay {
                 if viewModel.isLoading && viewModel.openEvents.isEmpty {

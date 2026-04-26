@@ -11,6 +11,7 @@ struct Event: Codable, Identifiable, Hashable {
     var hostAvatarURL: String?
     var rsvpCount: Int
     var isRSVPed: Bool
+    var attendees: [Attendee]?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -23,6 +24,15 @@ struct Event: Codable, Identifiable, Hashable {
         case hostAvatarURL = "host_avatar_url"
         case rsvpCount = "rsvp_count"
         case isRSVPed = "is_rsvped"
+        case attendees
+    }
+
+    // Hashable — exclude attendees to keep things simple
+    static func == (lhs: Event, rhs: Event) -> Bool {
+        lhs.id == rhs.id
+    }
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
 }
 

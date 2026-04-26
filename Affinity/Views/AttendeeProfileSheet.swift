@@ -98,7 +98,7 @@ struct AttendeeProfileSheet: View {
                     }
 
                     HStack(spacing: 16) {
-                        if let github = attendee.githubURL, let url = URL(string: github) {
+                        if let github = attendee.githubURL, let url = urlWithScheme(github) {
                             Link(destination: url) {
                                 Label("GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
                                     .font(.subheadline)
@@ -109,7 +109,7 @@ struct AttendeeProfileSheet: View {
                             }
                             .accessibilityLabel("Open GitHub profile")
                         }
-                        if let linkedin = attendee.linkedinURL, let url = URL(string: linkedin) {
+                        if let linkedin = attendee.linkedinURL, let url = urlWithScheme(linkedin) {
                             Link(destination: url) {
                                 Label("LinkedIn", systemImage: "link")
                                     .font(.subheadline)
@@ -141,6 +141,13 @@ struct AttendeeProfileSheet: View {
                 }
             }
         }
+    }
+
+    private func urlWithScheme(_ string: String) -> URL? {
+        if string.hasPrefix("http://") || string.hasPrefix("https://") {
+            return URL(string: string)
+        }
+        return URL(string: "https://\(string)")
     }
 
     private func sectionView(title: String, content: String) -> some View {

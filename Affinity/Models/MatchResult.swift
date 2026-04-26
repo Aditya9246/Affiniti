@@ -24,4 +24,18 @@ struct MatchResult: Codable, Identifiable {
         case isBookmarked = "is_bookmarked"
         case status
     }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        name = try c.decodeIfPresent(String.self, forKey: .name) ?? "Anonymous"
+        photoURL = try c.decodeIfPresent(String.self, forKey: .photoURL)
+        bio = try c.decodeIfPresent(String.self, forKey: .bio)
+        interests = try c.decodeIfPresent([String].self, forKey: .interests) ?? []
+        skills = try c.decodeIfPresent([String].self, forKey: .skills) ?? []
+        sharedInterests = try c.decodeIfPresent([String].self, forKey: .sharedInterests) ?? []
+        icebreaker = try c.decodeIfPresent(String.self, forKey: .icebreaker) ?? ""
+        isBookmarked = try c.decodeIfPresent(Bool.self, forKey: .isBookmarked) ?? false
+        status = try c.decodeIfPresent(AttendeeStatus.self, forKey: .status)
+    }
 }

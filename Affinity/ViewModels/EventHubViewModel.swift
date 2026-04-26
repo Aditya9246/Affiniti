@@ -31,15 +31,30 @@ class EventHubViewModel: ObservableObject {
     func loadFeed() async {
         isLoadingFeed = true
         do {
-            feed = try await api.getFeed(eventId: event.id)
+            let result = try await api.getFeed(eventId: event.id)
+            feed = result
         } catch {
-            errorMessage = error.localizedDescription
+            print("[Feed] /feed endpoint failed: \(error.localizedDescription)")
+            // Fallback: use attendees embedded in the event response
+            if let attendees = event.attendees, !attendees.isEmpty {
+                print("[Feed] Using \(attendees.count) attendees from event response")
+                feed = attendees
+            } else {
+                errorMessage = error.localizedDescription
+            }
         }
         isLoadingFeed = false
     }
 
     func loadMatches() async {
         isLoadingMatches = true
+        do {
+            // Trigger backend to compute/refresh matches (idempotent)
+            try await api.triggerMatch(eventId: event.id)
+        } catch {
+            print("[Matches] triggerMatch failed: \(error.localizedDescription)")
+            // Continue to fetch any existing matches even if trigger fails
+        }
         do {
             let results = try await api.getMatches(eventId: event.id)
             matches = Array(results.prefix(4))
@@ -71,8 +86,14 @@ class EventHubViewModel: ObservableObject {
 
     func clearIntent() async {
         intentText = ""
-        await loadFeed()
-        await loadMatches()
+        do {
+            try await api.deleteIntent(eventId: event.id)
+        } catch {
+            print("[Intent] deleteIntent failed: \(error.localizedDescription)")
+        }
+        async let feedTask: () = loadFeed()
+        async let matchesTask: () = loadMatches()
+        _ = await (feedTask, matchesTask)
     }
 
     func setStatus(_ status: AttendeeStatus) async {

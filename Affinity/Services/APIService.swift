@@ -141,6 +141,12 @@ class APIService: ObservableObject {
         return try await perform(request)
     }
 
+    func triggerMatch(eventId: String) async throws {
+        var request = try makeRequest(path: "/events/\(eventId)/match", method: "POST")
+        request.timeoutInterval = 60 // LLM icebreaker generation can take time
+        try await performVoid(request)
+    }
+
     func getMatches(eventId: String) async throws -> [MatchResult] {
         let request = try makeRequest(path: "/events/\(eventId)/matches")
         return try await perform(request)
@@ -151,6 +157,11 @@ class APIService: ObservableObject {
     func setIntent(eventId: String, intentText: String) async throws {
         let body = try JSONSerialization.data(withJSONObject: ["intent_text": intentText])
         let request = try makeRequest(path: "/events/\(eventId)/intent", method: "POST", body: body)
+        try await performVoid(request)
+    }
+
+    func deleteIntent(eventId: String) async throws {
+        let request = try makeRequest(path: "/events/\(eventId)/intent", method: "DELETE")
         try await performVoid(request)
     }
 

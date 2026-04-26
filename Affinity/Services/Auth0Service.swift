@@ -29,15 +29,18 @@ class Auth0Service: NSObject {
     static let clientId = "9iWjVfTyPk5TebOLGi8hMK1Q9FX1CW8b"
     static let callbackScheme = "affiniti"
     static let callbackURL = "\(callbackScheme)://callback"
-    static let audience = "https://dev-38y2fvuwskxdkowe.us.auth0.com/api/v2/" // Set if using a custom API audience
+    static let audience = "" // Leave empty unless backend has a custom API audience
 
     private var presentationAnchor: ASPresentationAnchor?
 
     func login(from anchor: ASPresentationAnchor) async throws -> String {
         let code = try await authorize(from: anchor)
         let tokens = try await exchangeCode(code)
-        KeychainService.saveToken(tokens.accessToken)
-        return tokens.accessToken
+        // Use ID token for backend auth (JWT that backend can verify)
+        let token = tokens.idToken ?? tokens.accessToken
+        print("[Auth0] Using token type: \(tokens.idToken != nil ? "id_token" : "access_token")")
+        KeychainService.saveToken(token)
+        return token
     }
 
     func logout() async throws {
@@ -56,6 +59,9 @@ class Auth0Service: NSObject {
         guard let authorizeURL = url else {
             throw Auth0Error.invalidURL
         }
+
+        print("[Auth0] Authorize URL: \(authorizeURL.absoluteString)")
+        print("[Auth0] Expected callback: \(Self.callbackURL)")
 
         return try await withCheckedThrowingContinuation { continuation in
             let session = ASWebAuthenticationSession(
@@ -106,11 +112,18 @@ class Auth0Service: NSObject {
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+        guard let httpResponse = response as? HTTPURLResponse else {
             throw Auth0Error.tokenExchangeFailed
         }
-
-        return try JSONDecoder().decode(Auth0Tokens.self, from: data)
+        print("[Auth0] Token exchange status: \(httpResponse.statusCode)")
+        if httpResponse.statusCode != 200 {
+            let body = String(data: data, encoding: .utf8) ?? "no body"
+            print("[Auth0] Token exchange error: \(body)")
+            throw Auth0Error.tokenExchangeFailed
+        }
+        let tokens = try JSONDecoder().decode(Auth0Tokens.self, from: data)
+        print("[Auth0] Got access token: \(tokens.accessToken.prefix(20))...")
+        return tokens
     }
 
     // MARK: - URL Builders

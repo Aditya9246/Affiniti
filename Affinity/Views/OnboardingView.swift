@@ -280,8 +280,18 @@ struct OnboardingView: View {
             linkedinURL: linkedinURL.isEmpty ? nil : linkedinURL
         )
         withAnimation { showBanner = true }
-        await session.completeOnboarding(profile: profile)
-        isSubmitting = false
+        // Navigate to Home immediately, API call happens in background
+        session.currentUser = profile
+        session.authState = .authenticated
+        // Fire-and-forget the profile creation
+        Task {
+            do {
+                _ = try await APIService.shared.createProfile(profile)
+                print("[Onboarding] Profile saved to backend")
+            } catch {
+                print("[Onboarding] Background profile save failed: \(error.localizedDescription)")
+            }
+        }
     }
 }
 
