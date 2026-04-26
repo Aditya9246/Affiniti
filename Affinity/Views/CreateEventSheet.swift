@@ -3,6 +3,7 @@ import PhotosUI
 
 struct CreateEventSheet: View {
     @ObservedObject var viewModel: EventListViewModel
+    var onCreated: ((Event) -> Void)?
     @Environment(\.dismiss) private var dismiss
 
     @State private var name = ""
@@ -80,9 +81,9 @@ struct CreateEventSheet: View {
             description: description.isEmpty ? nil : description,
             coverImageBase64: coverImageData?.base64EncodedString()
         )
-        let success = await viewModel.createEvent(request)
-        if success {
+        if let event = await viewModel.createEventAndReturn(request) {
             dismiss()
+            onCreated?(event)
         }
         isSubmitting = false
     }

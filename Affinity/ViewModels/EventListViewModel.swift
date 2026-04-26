@@ -24,16 +24,20 @@ class EventListViewModel: ObservableObject {
     }
 
     func createEvent(_ request: CreateEventRequest) async -> Bool {
+        return await createEventAndReturn(request) != nil
+    }
+
+    func createEventAndReturn(_ request: CreateEventRequest) async -> Event? {
         do {
             let event = try await api.createEvent(request)
             yourEvents.insert(event, at: 0)
             if !openEvents.contains(where: { $0.id == event.id }) {
                 openEvents.insert(event, at: 0)
             }
-            return true
+            return event
         } catch {
             errorMessage = error.localizedDescription
-            return false
+            return nil
         }
     }
 }

@@ -101,7 +101,12 @@ class EventHubViewModel: ObservableObject {
         currentStatus = status
         statusUpdatedAt = Date()
         do {
-            try await api.setStatus(eventId: event.id, status: status.rawValue)
+            let response = try await api.setStatus(eventId: event.id, status: status.rawValue)
+            if let expiresAt = response.expiresAt {
+                statusUpdatedAt = Date()
+                // Status will expire at the returned time
+                print("[Status] Set to \(response.status), expires at \(expiresAt)")
+            }
         } catch {
             currentStatus = previous
             errorMessage = error.localizedDescription

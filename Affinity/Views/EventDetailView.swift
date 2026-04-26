@@ -38,14 +38,16 @@ struct EventDetailView: View {
                     Text(event.name)
                         .font(.title.bold())
 
-                    HStack {
-                        Image(systemName: "calendar")
-                        Text(event.date, style: .date)
-                        Text("at")
-                        Text(event.date, style: .time)
+                    if let date = event.date {
+                        HStack {
+                            Image(systemName: "calendar")
+                            Text(date, style: .date)
+                            Text("at")
+                            Text(date, style: .time)
+                        }
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                     }
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
 
                     HStack {
                         Image(systemName: "mappin.circle.fill")
@@ -94,7 +96,6 @@ struct EventDetailView: View {
                     Button {
                         if isRSVPed {
                             Task {
-                                // Re-fetch event to get fresh attendees list
                                 if let fresh = try? await APIService.shared.getEvent(id: event.id) {
                                     event = fresh
                                 }
@@ -121,6 +122,13 @@ struct EventDetailView: View {
         .sheet(isPresented: $showPrivacySheet) {
             PrivacyOptInSheet(eventName: event.name, eventId: event.id) {
                 isRSVPed = true
+                // Auto-navigate to EventHub after successful RSVP
+                Task {
+                    if let fresh = try? await APIService.shared.getEvent(id: event.id) {
+                        event = fresh
+                    }
+                    navigateToHub = true
+                }
             }
         }
         .navigationDestination(isPresented: $navigateToHub) {

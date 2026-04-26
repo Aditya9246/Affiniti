@@ -4,6 +4,8 @@ struct HomeView: View {
     @EnvironmentObject var session: UserSession
     @StateObject private var viewModel = EventListViewModel()
     @State private var showCreateEvent = false
+    @State private var createdEvent: Event?
+    @State private var navigateToCreatedEvent = false
 
     var body: some View {
         NavigationStack {
@@ -87,7 +89,15 @@ struct HomeView: View {
                 .accessibilityLabel("Create Event")
             }
             .sheet(isPresented: $showCreateEvent) {
-                CreateEventSheet(viewModel: viewModel)
+                CreateEventSheet(viewModel: viewModel) { event in
+                    createdEvent = event
+                    navigateToCreatedEvent = true
+                }
+            }
+            .navigationDestination(isPresented: $navigateToCreatedEvent) {
+                if let event = createdEvent {
+                    EventDetailView(event: event)
+                }
             }
             .task {
                 await viewModel.loadEvents()
@@ -134,9 +144,11 @@ struct YourEventCard: View {
                 .font(.subheadline.bold())
                 .lineLimit(1)
 
-            Text(event.date, style: .date)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            if let date = event.date {
+                Text(date, style: .date)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .frame(width: 200)
         .accessibilityElement(children: .combine)
@@ -171,9 +183,11 @@ struct EventListCard: View {
                     .font(.headline)
                     .lineLimit(1)
 
-                Text(event.date, style: .date)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if let date = event.date {
+                    Text(date, style: .date)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
                 HStack(spacing: 4) {
                     Image(systemName: "mappin")

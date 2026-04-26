@@ -27,9 +27,17 @@ class UserSession: ObservableObject {
         }
         print("[Auth] Token found: \(token.prefix(20))...")
         do {
-            currentUser = try await api.getMe()
-            print("[Auth] Got user profile, authenticated")
-            authState = .authenticated
+            let profile = try await api.getMe()
+            currentUser = profile
+            // Backend auto-creates users with name = auth0_id and empty fields.
+            // Detect this default profile and route to onboarding.
+            if isDefaultProfile(profile) {
+                print("[Auth] Default profile detected, going to onboarding")
+                authState = .onboarding
+            } else {
+                print("[Auth] Got user profile, authenticated")
+                authState = .authenticated
+            }
         } catch let error as APIError {
             print("[Auth] API error: \(error.localizedDescription ?? "unknown")")
             switch error {
@@ -40,7 +48,6 @@ class UserSession: ObservableObject {
                 errorMessage = error.localizedDescription
                 authState = .unauthenticated
             default:
-                // Profile not found — needs onboarding
                 print("[Auth] Assuming new user, going to onboarding")
                 authState = .onboarding
             }
@@ -48,6 +55,16 @@ class UserSession: ObservableObject {
             print("[Auth] Unknown error: \(error)")
             authState = .unauthenticated
         }
+    }
+
+    /// The backend auto-creates a user with name = auth0_id and all other fields empty.
+    /// Detect this so we can route to onboarding.
+    private func isDefaultProfile(_ profile: UserProfile) -> Bool {
+        // A real onboarded user will have a human-readable name and at least some content.
+        // Default profiles have name like "auth0|abc123" or "google-oauth2|123" and empty bio/interests.
+        let hasAuth0Name = profile.name.contains("|")
+        let hasNoContent = profile.bio == nil && profile.interests.isEmpty && profile.skills.isEmpty
+        return hasAuth0Name && hasNoContent
     }
 
     func loginWithAuth0(from anchor: ASPresentationAnchor) async {
@@ -63,9 +80,15 @@ class UserSession: ObservableObject {
                 return
             }
             do {
-                currentUser = try await api.getMe()
-                print("[Auth] Got user profile after login, authenticated")
-                authState = .authenticated
+                let profile = try await api.getMe()
+                currentUser = profile
+                if isDefaultProfile(profile) {
+                    print("[Auth] Default profile after login, going to onboarding")
+                    authState = .onboarding
+                } else {
+                    print("[Auth] Got user profile after login, authenticated")
+                    authState = .authenticated
+                }
             } catch {
                 print("[Auth] Profile fetch failed after login: \(error.localizedDescription), going to onboarding")
                 authState = .onboarding

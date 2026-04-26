@@ -98,6 +98,16 @@ struct Attendee: Codable, Identifiable {
     }
 }
 
+struct StatusResponse: Codable {
+    let status: String
+    let expiresAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case status
+        case expiresAt = "expires_at"
+    }
+}
+
 enum AttendeeStatus: String, Codable, CaseIterable {
     case openToChat = "Open to Chat"
     case lookingForGroup = "Looking for Group"

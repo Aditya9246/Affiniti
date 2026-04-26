@@ -167,10 +167,10 @@ class APIService: ObservableObject {
 
     // MARK: - Status
 
-    func setStatus(eventId: String, status: String) async throws {
+    func setStatus(eventId: String, status: String) async throws -> StatusResponse {
         let body = try JSONSerialization.data(withJSONObject: ["status": status])
         let request = try makeRequest(path: "/events/\(eventId)/status", method: "POST", body: body)
-        try await performVoid(request)
+        return try await perform(request)
     }
 
     // MARK: - Bookmarks
