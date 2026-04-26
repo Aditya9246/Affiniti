@@ -1,27 +1,28 @@
-import httpx
+import asyncio
+from functools import partial
+from sentence_transformers import SentenceTransformer
+from mlx_lm import load, generate
 from app.config import settings
 
+_embed_model = SentenceTransformer(settings.EMBED_MODEL)
+_chat_model, _chat_tokenizer = load(settings.GENERALIZE_MODEL)
+
+
 async def embed(text: str) -> list[float]:
-    async with httpx.AsyncClient(timeout=60) as client:
-        resp = await client.post(
-            f"{settings.OLLAMA_BASE_URL}/api/embed",
-            json={"model": settings.EMBED_MODEL, "input": text},
-        )
-        resp.raise_for_status()
-        return resp.json()["embeddings"][0]
+    loop = asyncio.get_event_loop()
+    vector = await loop.run_in_executor(None, partial(_embed_model.encode, text))
+    return vector.tolist()
+
 
 async def chat(system: str, user_msg: str) -> str:
-    async with httpx.AsyncClient(timeout=120) as client:
-        resp = await client.post(
-            f"{settings.OLLAMA_BASE_URL}/api/chat",
-            json={
-                "model": settings.GENERALIZE_MODEL,
-                "messages": [
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user_msg},
-                ],
-                "stream": False,
-            },
-        )
-        resp.raise_for_status()
-        return resp.json()["message"]["content"].strip()
+    if system:
+        prompt = f"<start_of_turn>system\n{system}<end_of_turn>\n<start_of_turn>user\n{user_msg}<end_of_turn>\n<start_of_turn>model\n"
+    else:
+        prompt = f"<start_of_turn>user\n{user_msg}<end_of_turn>\n<start_of_turn>model\n"
+
+    loop = asyncio.get_event_loop()
+    response = await loop.run_in_executor(
+        None,
+        partial(generate, _chat_model, _chat_tokenizer, prompt=prompt, max_tokens=512, verbose=False),
+    )
+    return response.strip()

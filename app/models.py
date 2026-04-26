@@ -24,7 +24,7 @@ class User(Base):
     linkedin_url = Column(Text)
     raw_profile = Column(JSONB)
     generalized_summary = Column(Text)
-    embedding = Column(Vector(768))
+    embedding = Column(Vector(384))
     created_at = Column(DateTime(timezone=True), default=_now)
     updated_at = Column(DateTime(timezone=True), default=_now, onupdate=_now)
 
@@ -45,7 +45,7 @@ class RSVP(Base):
     event_id = Column(UUID(as_uuid=True), ForeignKey("events.id"), primary_key=True)
     opted_in_fields = Column(JSONB)
     intent_text = Column(Text)
-    intent_embedding = Column(Vector(768))
+    intent_embedding = Column(Vector(384))
     created_at = Column(DateTime(timezone=True), default=_now)
 
 class Match(Base):
