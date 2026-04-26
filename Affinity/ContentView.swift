@@ -1,24 +1,21 @@
-//
-//  ContentView.swift
-//  Affinity
-//
-//  Created by Abhi  on 4/25/26.
-//
-
 import SwiftUI
 
 struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
-    }
-}
+    @EnvironmentObject var session: UserSession
 
-#Preview {
-    ContentView()
+    var body: some View {
+        Group {
+            switch session.authState {
+            case .loading:
+                SplashView()
+            case .unauthenticated:
+                SplashView()
+            case .onboarding:
+                OnboardingView()
+            case .authenticated:
+                HomeView()
+            }
+        }
+        .animation(.easeInOut, value: session.authState)
+    }
 }
