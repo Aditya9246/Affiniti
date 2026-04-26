@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     STATUS_TTL_SECONDS: int = 3600
     BOOKMARK_RETENTION_DAYS: int = 7
     MAX_MATCHES: int = 4
+    DEMO_MODE: bool = False
 
     model_config = {"env_file": ".env"}
 

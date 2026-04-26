@@ -1,3 +1,4 @@
+import re
 import time
 import httpx
 from jose import jwt, JWTError
@@ -10,6 +11,7 @@ from app.database import get_db
 from app.models import User
 
 _jwks_cache: dict = {"keys": None, "expires_at": 0}
+_DEMO_RE = re.compile(r"^demo-token-(\d+)$")
 
 async def _get_jwks() -> list:
     if _jwks_cache["keys"] and time.time() < _jwks_cache["expires_at"]:
@@ -21,6 +23,16 @@ async def _get_jwks() -> list:
     _jwks_cache["expires_at"] = time.time() + 3600
     return _jwks_cache["keys"]
 
+async def _get_or_create_demo_user(db: AsyncSession, auth0_id: str) -> User:
+    result = await db.execute(select(User).where(User.auth0_id == auth0_id))
+    user = result.scalar_one_or_none()
+    if user is None:
+        user = User(auth0_id=auth0_id, name=f"Demo User {auth0_id[-1]}")
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+    return user
+
 _bearer = HTTPBearer()
 
 async def get_current_user(
@@ -28,6 +40,12 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
 ) -> User:
     token = credentials.credentials
+
+    if settings.DEMO_MODE:
+        m = _DEMO_RE.match(token)
+        if m:
+            return await _get_or_create_demo_user(db, f"demo-user-{m.group(1)}")
+
     try:
         header = jwt.get_unverified_header(token)
         keys = await _get_jwks()
@@ -42,7 +60,8 @@ async def get_current_user(
             issuer=f"https://{settings.AUTH0_DOMAIN}/",
         )
         auth0_id: str = payload["sub"]
-    except JWTError:
+    except JWTError as e:
+        print(f"[auth] JWTError: {e}")
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
     result = await db.execute(select(User).where(User.auth0_id == auth0_id))
