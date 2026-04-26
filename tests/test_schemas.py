@@ -38,3 +38,14 @@ def test_status_request_valid():
     from app.schemas import StatusRequest
     req = StatusRequest(status="open_to_chat")
     assert req.status == "open_to_chat"
+
+
+def test_auth_is_async():
+    from app.auth import get_current_user
+    import inspect
+    assert inspect.iscoroutinefunction(get_current_user)
+
+def test_jwks_cache_structure():
+    from app.auth import _jwks_cache
+    assert "keys" in _jwks_cache
+    assert "expires_at" in _jwks_cache
