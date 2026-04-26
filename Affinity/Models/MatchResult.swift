@@ -13,21 +13,21 @@ struct MatchResult: Codable, Identifiable {
     var status: AttendeeStatus?
 
     enum CodingKeys: String, CodingKey {
-        case id
+        case id = "matched_user_id"
         case name
         case photoURL = "photo_url"
-        case bio
+        case bio = "headline"
         case interests
         case skills
-        case sharedInterests = "shared_interests"
-        case icebreaker
+        case sharedInterests = "shared_tags"
+        case icebreaker = "icebreaker_text"
         case isBookmarked = "is_bookmarked"
         case status
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = try c.decode(String.self, forKey: .id)
+        id = try c.decode(UUID.self, forKey: .id).uuidString
         name = try c.decodeIfPresent(String.self, forKey: .name) ?? "Anonymous"
         photoURL = try c.decodeIfPresent(String.self, forKey: .photoURL)
         bio = try c.decodeIfPresent(String.self, forKey: .bio)

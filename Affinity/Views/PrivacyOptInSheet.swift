@@ -15,6 +15,7 @@ struct PrivacyOptInSheet: View {
     @State private var shareLookingToLearn = true
     @State private var shareSocialLinks = false
     @State private var isSubmitting = false
+    @State private var errorMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -47,6 +48,11 @@ struct PrivacyOptInSheet: View {
             }
             .navigationTitle("Privacy Settings")
             .inlineNavigationBarTitle()
+            .alert("Couldn't join event", isPresented: .init(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
+                Button("OK") { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "")
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -87,8 +93,7 @@ struct PrivacyOptInSheet: View {
             onConfirm()
             dismiss()
         } catch {
-            onConfirm()
-            dismiss()
+            errorMessage = error.localizedDescription
         }
         isSubmitting = false
     }
